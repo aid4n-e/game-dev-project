@@ -18,12 +18,12 @@ MonoBehaviour:
     m_Order: 0
     m_Sprites:
     - {fileID: -7190719572971877601, guid: f904de29de358dc41b854e10e7eeaa73, type: 3}
-    - {fileID: -7190719572971877601, guid: f904de29de358dc41b854e10e7eeaa73, type: 3}
+    - {fileID: -8396435236039822241, guid: f904de29de358dc41b854e10e7eeaa73, type: 3}
   - m_Start: 45
     m_End: 130
     m_Order: 0
     m_Sprites:
-    - {fileID: -8939774969199742047, guid: f904de29de358dc41b854e10e7eeaa73, type: 3}
+    - {fileID: 4901861162507264712, guid: f904de29de358dc41b854e10e7eeaa73, type: 3}
   - m_Start: 130
     m_End: 218
     m_Order: 0
