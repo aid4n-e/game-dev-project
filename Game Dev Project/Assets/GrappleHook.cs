@@ -4,15 +4,20 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Linq;
 using UnityEditor;
+using TMPro;
 
 public class GrappleHook : MonoBehaviour {
 
     // PUBLIC VARIABLES
     public Transform player;
     public Transform anchor;
+    public Transform hook;
     public LineRenderer ropeRenderer;
     public DistanceJoint2D distanceJoint;
+    public HookThrow hookThrow;
 
+
+    // Defines which layers the rope can collide with
     public LayerMask ropeLayerMask;
 
     public float maxLength;
@@ -20,7 +25,7 @@ public class GrappleHook : MonoBehaviour {
     // PRIVATE VARIABLES
     private Vector2 playerPos;
 
-    private List<Vector2> ropePositions = new List<Vector2>();
+    public List<Vector2> ropePositions = new List<Vector2>();
 
     /* Stores int 1 or -1 for each rope vertex
      * depending on whether the rope was wrapped
@@ -38,26 +43,41 @@ public class GrappleHook : MonoBehaviour {
     }
 
 
+
     private void Update() {
 
         playerPos = player.position;
 
-        if (fire)
-        {
+        if (hookThrow.thrown) {
 
-            fire = false;
-            RaycastHit2D hit = Physics2D.Raycast(playerPos, new Vector2(0, 1), maxLength, ropeLayerMask);
-            if (hit.collider != null)
-                ropePositions.Add(hit.point);
+            hookThrow.thrown = false;
+            ropePositions.Add(hook.position);
+            //distanceJoint.enabled = true;
         }
-        else if (reset)
+        else if (fire) {
+
+            RaycastHit2D hit = Physics2D.Raycast(playerPos, new Vector2(0, 1), maxLength, ropeLayerMask);
+            if (hit.collider != null) {
+
+                ropePositions.Add(hit.point);
+                distanceJoint.enabled = true;
+            }
+        }
+
+
+        else if (reset) {
+
+            reset = false;
             ResetRope();
+        }
 
         // If the rope is currently active
-        if (ropePositions.Count > 0)
-            HandleRopePositions();
+        if (ropePositions.Count > 0) {
 
-        UpdateRopeRenderer();
+            HandleRopePositions();
+            UpdateRopeRenderer();
+        }
+
     }
 
 
@@ -75,6 +95,12 @@ public class GrappleHook : MonoBehaviour {
 
         // Set the anchor position
         anchor.position = ropePositions.ElementAt(ropePositions.Count() - 1);
+        //if (new Vector2(hook.position.x, hook.position.y) != ropePositions.First()) {
+
+        ropePositions.Insert(0, hook.position);
+        ropePositions.RemoveAt(1);
+        //}
+
 
         /* Adjust the length of the rope
          * to match the max distance */
@@ -140,15 +166,14 @@ public class GrappleHook : MonoBehaviour {
     }
 
 
-
+    /* This method checks if the rope has been
+     * obstructed and can wrap around an object */
     private void CheckWrap() {
 
         // Define last rope point and RayCast to next
-        Vector2 lastRopePoint = ropePositions.Last();
         RaycastHit2D playerToLastRopePoint = Physics2D.Raycast(playerPos,
-                                                (lastRopePoint - playerPos).normalized,
-                                                Vector2.Distance(playerPos,
-                                                lastRopePoint) - 0.1f,
+                                                (ropePositions.Last() - playerPos).normalized,
+                                                Vector2.Distance(playerPos, ropePositions.Last()) - 0.1f,
                                                 ropeLayerMask);
 
         // If rope raycast is interrupted, add a vertex to the line
@@ -205,12 +230,12 @@ public class GrappleHook : MonoBehaviour {
 
 
 
-    private void ResetRope()
+    public void ResetRope()
     {
         ropePositions = new List<Vector2>();
         ropeWraps = new List<int>();
-
-
+        distanceJoint.enabled = false;
+        UpdateRopeRenderer();
     }
 
 
@@ -227,4 +252,9 @@ public class GrappleHook : MonoBehaviour {
         var orderedDictionary = distanceDictionary.OrderBy(e => e.Key);
         return orderedDictionary.Any() ? orderedDictionary.First().Value : Vector2.zero;
     }
+
+
+
+    // Tentative equation for charging throw
+    // 
 }
