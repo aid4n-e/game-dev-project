@@ -21,6 +21,8 @@ public class HookThrow : MonoBehaviour {
 
     }
 
+
+
     // Update is called once per frame
     void FixedUpdate() {
 
@@ -35,8 +37,6 @@ public class HookThrow : MonoBehaviour {
             thrown = true;
             stuck = false;
 
-            //hookRb.GetComponent<GameObject>().SetActive(true);
-
             hookRb.bodyType = RigidbodyType2D.Dynamic;
             hookRb.velocity = Vector2.zero;
             hookRb.position = gh.player.position;
@@ -44,14 +44,11 @@ public class HookThrow : MonoBehaviour {
             Throw(chargeTime);
         }
 
-
         if(Vector2.Distance(gh.player.position, gh.hook.position) > gh.maxLength + 0.1f) {
 
             Debug.Log("BROKEN; Distance = " + Vector2.Distance(gh.player.position, gh.hook.position));
             ResetThrow();
         }
-
-
 
     }
 
@@ -59,12 +56,10 @@ public class HookThrow : MonoBehaviour {
 
     void Throw(float charge) {
 
-        //float strength = chargeScalar * (Mathf.Pow(0.3f * charge, 6) + Mathf.Pow(2 * charge, 0.15f) + 0.3f);           
-        //float strength = chargeScalar * (6 * Mathf.Pow(charge, 4.5) + Mathf.Pow(charge, 0.3f) + 1);
-        float strength = chargeScalar * (10 * Mathf.Pow(charge, 5) + 0.7f * Mathf.Pow(charge, 0.5f) + 1);
+        float strength = chargeScalar * Mathf.Clamp((20 * Mathf.Pow(charge, 4.5f) + 1f * Mathf.Pow(charge, 0.4f) + 0.7f),0f,2f);
 
         Vector2 force = new Vector2(1, 1) * strength;
-        Debug.Log(strength);
+        //Debug.Log(strength);
 
         hookRb.AddForce(force, ForceMode2D.Impulse);
     }

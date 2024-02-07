@@ -1,10 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UIElements;
 using System.Linq;
-using UnityEditor;
-using TMPro;
+using UnityEngine;
 
 public class GrappleHook : MonoBehaviour {
 
@@ -35,7 +31,8 @@ public class GrappleHook : MonoBehaviour {
     [SerializeField]
     private bool fire, reset;
 
-    private double hingeAngle, playerAngle, lastHingeAngle, lastPlayerAngle;
+    private double angle1, angle2, lastAngle1, lastAngle2;
+    private double[][] angles;
 
     private void Start() {
 
@@ -52,6 +49,7 @@ public class GrappleHook : MonoBehaviour {
 
             hookThrow.thrown = false;
             ropePositions.Add(hook.position);
+            ropePositions.Add(player.position);
             //distanceJoint.enabled = true;
         }
         else if (fire) {
@@ -63,8 +61,6 @@ public class GrappleHook : MonoBehaviour {
                 distanceJoint.enabled = true;
             }
         }
-
-
         else if (reset) {
 
             reset = false;
@@ -87,19 +83,21 @@ public class GrappleHook : MonoBehaviour {
      * and if a rope point can be removed (unwrap) */
     private void HandleRopePositions() {
 
-        GetAngles();
+        ropePositions.Insert(0, hook.position);
+        ropePositions.RemoveAt(1);
 
-        CheckUnwrap();
-          
+        ropePositions.Add(player.position);
+        ropePositions.RemoveAt(ropePositions.Count() - 2);
+
+        //GetAngles();
+
+        //CheckUnwrap();
+
         CheckWrap();
 
         // Set the anchor position
         anchor.position = ropePositions.ElementAt(ropePositions.Count() - 1);
-        //if (new Vector2(hook.position.x, hook.position.y) != ropePositions.First()) {
 
-        ropePositions.Insert(0, hook.position);
-        ropePositions.RemoveAt(1);
-        //}
 
 
         /* Adjust the length of the rope
@@ -107,8 +105,8 @@ public class GrappleHook : MonoBehaviour {
         distanceJoint.distance = (maxLength - GetDistance());
 
         // Hold the values for next update
-        lastHingeAngle = hingeAngle;
-        lastPlayerAngle = playerAngle;
+        lastAngle1 = angle1;
+        lastAngle2 = angle2;
     }
 
 
@@ -127,18 +125,18 @@ public class GrappleHook : MonoBehaviour {
 
     private void GetAngles() {
 
-        if(ropePositions.Count > 1) {
+        if (ropePositions.Count > 1) {
 
             // Save the current angles
-            hingeAngle = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), ropePositions.Last() - ropePositions.ElementAt(ropePositions.Count - 2));
-            playerAngle = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), playerPos - ropePositions.ElementAt(ropePositions.Count - 2));
+            angle1 = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), ropePositions.Last() - ropePositions.ElementAt(ropePositions.Count - 2));
+            angle2 = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), playerPos - ropePositions.ElementAt(ropePositions.Count - 2));
 
             // Correct Euler angle overwrapping (prevent 180 looping to -180)
-            while (hingeAngle < lastHingeAngle - 180f) hingeAngle += 360f;
-            while (hingeAngle > lastHingeAngle + 180f) hingeAngle -= 360f;
+            while (angle1 < lastAngle1 - 180f) angle1 += 360f;
+            while (angle1 > lastAngle1 + 180f) angle1 -= 360f;
 
-            while (playerAngle < lastPlayerAngle - 180f) playerAngle += 360f;
-            while (playerAngle > lastPlayerAngle + 180f) playerAngle -= 360f;
+            while (angle2 < lastAngle2 - 180f) angle2 += 360f;
+            while (angle2 > lastAngle2 + 180f) angle2 -= 360f;
         }
     }
 
@@ -148,16 +146,16 @@ public class GrappleHook : MonoBehaviour {
      * whether the rope can be unwrapped */
     private void CheckUnwrap() {
 
-        if(ropePositions.Count > 1) {
+        if (ropePositions.Count > 1) {
 
             /* If the path to the second last point
              * is no longer obstructed, unwrap the rope */
-            if (playerAngle < hingeAngle && ropeWraps.Last() == 1) {
+            if (angle2 < angle1 && ropeWraps.Last() == 1) {
 
                 ropeWraps.RemoveAt(ropeWraps.Count - 1);
                 ropePositions.RemoveAt(ropePositions.Count - 1);
             }
-            else if (playerAngle > hingeAngle && ropeWraps.Last() == -1) {
+            else if (angle2 > angle1 && ropeWraps.Last() == -1) {
 
                 ropeWraps.RemoveAt(ropeWraps.Count - 1);
                 ropePositions.RemoveAt(ropePositions.Count - 1);
@@ -166,41 +164,55 @@ public class GrappleHook : MonoBehaviour {
     }
 
 
+
     /* This method checks if the rope has been
      * obstructed and can wrap around an object */
     private void CheckWrap() {
 
-        // Define last rope point and RayCast to next
-        RaycastHit2D playerToLastRopePoint = Physics2D.Raycast(playerPos,
-                                                (ropePositions.Last() - playerPos).normalized,
-                                                Vector2.Distance(playerPos, ropePositions.Last()) - 0.1f,
-                                                ropeLayerMask);
+        RaycastHit2D ropeRaycast;
 
-        // If rope raycast is interrupted, add a vertex to the line
-        if (playerToLastRopePoint) {
+        int i = 0;
 
-            // Get collider and find its closest vertex to point of collision
-            PolygonCollider2D colliderWithVertices = playerToLastRopePoint.collider as PolygonCollider2D;
+        do {
 
-            if (colliderWithVertices) {
+            // Define last rope point and RayCast to next
+            ropeRaycast = Physics2D.Raycast(ropePositions.ElementAt(i),
+                          (ropePositions.ElementAt(i) - ropePositions.ElementAt(i + 1)).normalized,
+                          Vector2.Distance(ropePositions.ElementAt(i), ropePositions.ElementAt(i + 1)) - 0.1f,
+                          ropeLayerMask);
 
-                Vector2 closestPointToHit = GetClosestColliderPoint(playerToLastRopePoint.point, colliderWithVertices);
+            // If rope raycast is interrupted, add a vertex to the line
+            if (ropeRaycast) {
 
-                // Add the new rope position
-                ropePositions.Add(closestPointToHit);
+                // Get collider and find its closest vertex to point of collision
+                PolygonCollider2D colliderWithVertices = ropeRaycast.collider as PolygonCollider2D;
 
-                // Save the new angle data immediately
-                lastHingeAngle = hingeAngle = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), ropePositions.Last() - ropePositions.ElementAt(ropePositions.Count - 2));
-                lastPlayerAngle = playerAngle = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), playerPos - ropePositions.ElementAt(ropePositions.Count - 2));
+                if (colliderWithVertices) {
 
-                //Debug.Log("PLAYERANGLE = " + playerAngle + "\tHINGEANGLE = " + hingeAngle);
+                    Vector2 closestPointToHit = GetClosestColliderPoint(ropeRaycast.point, colliderWithVertices);
 
-                if (playerAngle < hingeAngle)
-                    ropeWraps.Add(-1);
-                else if (playerAngle > hingeAngle)
-                    ropeWraps.Add(1);
+                    // Add the new rope position
+                    ropePositions.Insert(i+1,closestPointToHit);
+
+                    // Save the new angle data immediately
+                    angles[i][0] = Vector2.SignedAngle(ropePositions.ElementAt(i+2), ropePositions.ElementAt(i+1) - ropePositions.ElementAt(i+1));
+                    angles[i][1] = Vector2.SignedAngle(ropePositions.ElementAt(i+2), ropePositions.ElementAt(i) - ropePositions.ElementAt(i+1));
+
+                    //lastAngle1 = angle1 = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), ropePositions.Last() - ropePositions.ElementAt(ropePositions.Count - 2));
+                    //lastAngle2 = angle2 = Vector2.SignedAngle(ropePositions.ElementAt(ropePositions.Count - 2), playerPos - ropePositions.ElementAt(ropePositions.Count - 2));
+
+                    //Debug.Log("PLAYERANGLE = " + playerAngle + "\tHINGEANGLE = " + hingeAngle);
+
+                    if (angle2 < angle1)
+                        ropeWraps.Add(-1);
+                    else if (angle2 > angle1)
+                        ropeWraps.Add(1);
+                }
             }
+
+            i++;
         }
+        while (i < ropePositions.Count() - 2);
 
     }
 
@@ -253,8 +265,4 @@ public class GrappleHook : MonoBehaviour {
         return orderedDictionary.Any() ? orderedDictionary.First().Value : Vector2.zero;
     }
 
-
-
-    // Tentative equation for charging throw
-    // 
 }
