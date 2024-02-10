@@ -56,7 +56,7 @@ public class HookThrow : MonoBehaviour {
 
     void Throw(float charge) {
 
-        float strength = chargeScalar * Mathf.Clamp((20 * Mathf.Pow(charge, 4.5f) + 1f * Mathf.Pow(charge, 0.4f) + 0.7f),0f,2f);
+        float strength = chargeScalar * Mathf.Clamp((20 * Mathf.Pow(charge, 4.5f) + 1f * Mathf.Pow(charge, 0.4f) + 0.7f),0f,2f);  // Desmos: 20x^{4.5}\ +\ 1x^{0.4}\ +\ 0.7
 
         Vector2 force = new Vector2(1, 1) * strength;
         //Debug.Log(strength);
