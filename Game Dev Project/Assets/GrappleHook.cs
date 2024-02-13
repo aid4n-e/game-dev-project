@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Unity.VisualScripting;
+using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -11,6 +12,7 @@ public class GrappleHook : MonoBehaviour {
     public Transform player;
     public Transform anchor;
     public Transform hook;
+    public Transform terrainParent;
     public LineRenderer ropeRenderer;
     public DistanceJoint2D distanceJoint;
     public HookThrow hookThrow;
@@ -24,7 +26,7 @@ public class GrappleHook : MonoBehaviour {
     // PRIVATE VARIABLES
     private Vector2 oldPlayerPos;
 
-    public List<Vector2> ropePositions = new List<Vector2>();
+    public List<Transform> ropePositions = new List<Transform>();
 
     /* Stores int 1 or -1 for each rope vertex
      * depending on whether the rope was wrapped
@@ -37,7 +39,7 @@ public class GrappleHook : MonoBehaviour {
     private double angle1, angle2, lastAngle1, lastAngle2;
     public List<double[]> angles = new List<double[]>();
     public List<double[]> oldAngles = new List<double[]>();
-    public List<Transform> holdPoints = new List<Transform>();
+    public Stack<Transform> tempTransforms = new Stack<Transform>();
 
     private GameObject scalePoint, referencePoint;
 
@@ -51,24 +53,15 @@ public class GrappleHook : MonoBehaviour {
 
 
 
-    private void Update() {
+    private void FixedUpdate() {
 
         
         if (hookThrow.thrown) {
 
             hookThrow.thrown = false;
-            ropePositions.Add(hook.position);
-            ropePositions.Add(player.position);
+            ropePositions.Add(hook.transform);
+            ropePositions.Add(player.transform);
             //distanceJoint.enabled = true;
-        }
-        else if (fire) {
-
-            RaycastHit2D hit = Physics2D.Raycast(player.position, new Vector2(0, 1), maxLength, ropeLayerMask);
-            if (hit.collider != null) {
-
-                ropePositions.Add(hit.point);
-                distanceJoint.enabled = true;
-            }
         }
         else if (reset) {
 
@@ -93,31 +86,23 @@ public class GrappleHook : MonoBehaviour {
      * and if a rope point can be removed (unwrap) */
     private void HandleRopePositions() {
 
-        ropePositions.Insert(0, hook.position);
-        ropePositions.RemoveAt(1);
-
-        ropePositions.Add(player.position);
-        ropePositions.RemoveAt(ropePositions.Count() - 2);
-
-        MatchHoldPoints();
+        GetAngles();
 
         float travelDistance = Vector2.Distance((Vector2)player.position, oldPlayerPos);
         int iterations = (int)Mathf.Floor(travelDistance / 0.2f);
 
-        Vector2 oldRopePosition = ropePositions.Last();
-
         for (int i = 1; i <= iterations; i++) {
 
             ropePositions.RemoveAt(ropePositions.Count - 1);
-            Vector2 interposition = oldPlayerPos + (i * 0.2f) * ((Vector2)player.position - oldPlayerPos).normalized;
-            ropePositions.Add(interposition);
+            Transform temp = GetTempTransform(oldPlayerPos + (i * 0.2f) * ((Vector2)player.position - oldPlayerPos).normalized);
+            ropePositions.Add(temp);
 
             CheckWrap();
         }
 
-        ropePositions.RemoveAt(ropePositions.Count - 1);
-        ropePositions.Add((Vector2)player.position);
-        
+        /*ropePositions.RemoveAt(ropePositions.Count - 1);
+        ropePositions.Add((Vector2)player.position);*/
+
         CheckWrap();
         GetAngles();
         CheckUnwrap();
@@ -125,7 +110,7 @@ public class GrappleHook : MonoBehaviour {
         //foreach (double[] a in angles) Debug.Log(a[2]);
 
         // Set the anchor position
-        anchor.position = ropePositions.ElementAt(ropePositions.Count() - 1);
+        anchor.position = ropePositions.ElementAt(ropePositions.Count() - 1).position;
 
         /* Adjust the length of the rope
          * to match the max distance */
@@ -143,7 +128,7 @@ public class GrappleHook : MonoBehaviour {
 
         float distance = 0;
         for (int i = 0; i < ropePositions.Count - 1; i++)
-            distance += Vector2.Distance(ropePositions.ElementAt(i), ropePositions.ElementAt(i + 1));
+            distance += Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position);
 
         return distance;
     }
@@ -161,10 +146,11 @@ public class GrappleHook : MonoBehaviour {
             do {
 
                 double[] newAngle = new double[3];
-                newAngle[0] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1), ropePositions.ElementAt(i + 2) - ropePositions.ElementAt(i + 1));
-                newAngle[1] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1), ropePositions.ElementAt(i+1) - ropePositions.ElementAt(i)); 
+                newAngle[0] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1).position, ropePositions.ElementAt(i + 2).position - ropePositions.ElementAt(i + 1).position);
+                newAngle[1] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1).position, ropePositions.ElementAt(i+1).position - ropePositions.ElementAt(i).position); 
 
                 if(oldAngles.Count() > i) {
+                    //Debug.Log("OLD " + i);
 
                     // Correct Euler angle overwrapping (prevent 180 looping to -180)
                     while (newAngle[0] < oldAngles.ElementAt(i)[0] - 180f) newAngle[0] += 360f;
@@ -175,7 +161,7 @@ public class GrappleHook : MonoBehaviour {
                 }
 
                 newAngle[2] = angleWraps.ElementAt(i);
-                Debug.Log(i + " = " + newAngle[0] + ", " + newAngle[1] + ", " + newAngle[2]);
+                Debug.Log("\t" + i + " = " + newAngle[0] + ", " + newAngle[1] + ", " + newAngle[2]);
 
                 // Save the new angle data immediately
                 angles.Add(newAngle);
@@ -211,16 +197,14 @@ public class GrappleHook : MonoBehaviour {
                     
                     Debug.Log("UNWRAPPING\n" + i + " = " + angles.ElementAt(i)[0] + ", " + angles.ElementAt(i)[1] + ", " + angles.ElementAt(i)[2] + "\nCONDITION 1: " + (angles.ElementAt(i)[1] < angles.ElementAt(i)[0] && angles.ElementAt(i)[2] == 1) + "\nCONDITION 2: " + (angles.ElementAt(i)[1] > angles.ElementAt(i)[0] && angles.ElementAt(i)[2] == -1));
 
-
-
                     ropePositions.RemoveAt(i+1);
-                    holdPoints.RemoveAt(i);
                     angles.RemoveAt(i);
                     angleWraps.RemoveAt(i);
                     GetAngles();
 
                     Debug.Log(i + " is DISCONNECT");
                     i = -1;
+                    Debug.Break();
                 }
 
                 i++;
@@ -250,23 +234,25 @@ public class GrappleHook : MonoBehaviour {
 
             if (i + 1 == ropePositions.Count() - 1) {
 
-                dir = (ropePositions.ElementAt(i) - ropePositions.ElementAt(i+1)).normalized;
-                origin = ropePositions.ElementAt(i+1) + dir * 0.1f;
-                Debug.DrawRay(origin, dir * (Vector2.Distance(ropePositions.ElementAt(i), ropePositions.ElementAt(i + 1)) - 0.2f), Color.green);  // Reverse ray 
+                dir = (ropePositions.ElementAt(i).position - ropePositions.ElementAt(i + 1).position).normalized;
+                origin = (Vector2)ropePositions.ElementAt(i+1).position + dir * 0.1f;
+                Debug.DrawRay(origin, dir * (Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position) - 0.2f), Color.green);  // Reverse ray 
             }
             else {
 
-                dir = (ropePositions.ElementAt(i+1) - ropePositions.ElementAt(i)).normalized;
-                origin = ropePositions.ElementAt(i) + dir * 0.1f;
-                Debug.DrawRay(origin, dir * (Vector2.Distance(ropePositions.ElementAt(i), ropePositions.ElementAt(i + 1)) - 0.2f), Color.red);  // Forward ray 
+                dir = (ropePositions.ElementAt(i+1).position - ropePositions.ElementAt(i).position).normalized;
+                origin = (Vector2)ropePositions.ElementAt(i).position + dir * 0.1f;
+                Debug.DrawRay(origin, dir * (Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position) - 0.2f), Color.red);  // Forward ray 
             }
 
             ropeRaycast = Physics2D.Raycast(origin, dir,
-                          Vector2.Distance(ropePositions.ElementAt(i), ropePositions.ElementAt(i + 1)) - 0.2f,
+                          Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position) - 0.2f,
                           ropeLayerMask);
 
             // If rope raycast is interrupted, add a vertex to the line
             if (ropeRaycast) {
+
+
 
                 PolygonCollider2D colliderWithVertices = ropeRaycast.collider as PolygonCollider2D;
 
@@ -275,39 +261,51 @@ public class GrappleHook : MonoBehaviour {
                     // Get collider and find its closest vertex to point of collision
                     Vector2 closestPointToHit = GetClosestColliderPoint(ropeRaycast.point, colliderWithVertices);
 
-                    scalePoint.transform.SetParent(colliderWithVertices.transform);
+                    /*scalePoint.transform.SetParent(colliderWithVertices.transform);
                     scalePoint.transform.localScale = Vector3.one;
-                    scalePoint.transform.localPosition = Vector3.zero;
-                    referencePoint.transform.SetParent(scalePoint.transform);
+                    scalePoint.transform.localPosition = Vector3.zero;*/
+                    referencePoint.transform.SetParent(colliderWithVertices.transform);
                     referencePoint.transform.localScale = Vector3.one;
                     referencePoint.transform.position = closestPointToHit;
-                    scalePoint.transform.localScale += new Vector3(0.05f, 0.05f, 0.05f);
+
+                    dir = (closestPointToHit - (Vector2)colliderWithVertices.transform.position).normalized;
+
                     referencePoint.transform.SetParent(colliderWithVertices.transform);
 
+                    bool valid = true;
+
                     // Ensure the rope position was not already added recently
-                    if (Vector2.Distance(ropePositions.ElementAt(i), (Vector2)referencePoint.transform.position) > 0.03 && Vector2.Distance(ropePositions.ElementAt(i+1), (Vector2)referencePoint.transform.position) > 0.03) {
+                    for (int n = i - 1; n < i + 1; n++)
+                        if (n > 0 && n < ropePositions.Count() - 1)
+                        {
+                            Debug.Log("WRAP: i = " + i + ";  d" + n + " = " + Vector2.Distance(ropePositions.ElementAt(n).position, referencePoint.transform.position));
+                            if (Vector2.Distance(ropePositions.ElementAt(n).position, referencePoint.transform.position) < 0.1)
+                                valid = false;
+                        }
 
-                        GameObject holdPoint = new GameObject("holdPoint" + (holdPoints.Count()+1));
-                        holdPoint.transform.SetParent(scalePoint.transform);
-                        holdPoint.transform.position = referencePoint.transform.position;
+
+                    if (valid) {
+
+                        Debug.Log("WRAPPING: " + i);
+                        Debug.Break();
+
+                        GameObject holdPoint = new GameObject("holdPoint" + (ropePositions.Count()-2));
                         holdPoint.transform.SetParent(colliderWithVertices.transform);
+                        holdPoint.transform.position = (Vector2)closestPointToHit + (dir * 0.05f);
                         holdPoint.transform.localScale = Vector3.one;
-                        holdPoints.Add(holdPoint.transform);
 
-                        ropePositions.Insert(i + 1, closestPointToHit);
-
-                        GetAngles();
-
-                        /*
+                        ropePositions.Insert(i + 1, holdPoint.transform);
 
                         double[] newAngle = new double[2];
-                        newAngle[0] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1), ropePositions.ElementAt(i + 2) - ropePositions.ElementAt(i + 1));
-                        newAngle[1] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1), ropePositions.ElementAt(i + 1) - ropePositions.ElementAt(i));
+                        newAngle[0] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1).position, ropePositions.ElementAt(i + 2).position - ropePositions.ElementAt(i + 1).position);
+                        newAngle[1] = Vector2.SignedAngle(ropePositions.ElementAt(i + 1).position, ropePositions.ElementAt(i + 1).position - ropePositions.ElementAt(i).position);
                         
                         if (newAngle[1] < newAngle[0])
                             angleWraps.Insert(i, -1);
                         else if (newAngle[1] > newAngle[0])
-                            angleWraps.Insert(i, 1);*/
+                            angleWraps.Insert(i, 1);
+
+                        GetAngles();
 
                         i++;
                     }
@@ -325,29 +323,6 @@ public class GrappleHook : MonoBehaviour {
     }
 
 
-    
-    private void MatchHoldPoints() {
-
-        if(ropePositions.Count() > 2) {
-
-            int i = 1;
-
-            do {
-                ropePositions.RemoveAt(i);
-
-                ropePositions.Insert(i, holdPoints.ElementAt(i - 1).position);
-
-                if (i > 10) {
-                    Debug.Log("NIGHTMARE4"); Debug.Break(); break;
-                }
-                i++;
-            }
-            while (i < ropePositions.Count() - 2);
-        }
-
-    }
-
-
 
     /* This method tells the rope's line renderer
      * the position of each vertex.
@@ -358,17 +333,40 @@ public class GrappleHook : MonoBehaviour {
 
         // Render a rope through every point
         for (int i = 0; i < ropeRenderer.positionCount; i++)
-            ropeRenderer.SetPosition(i, ropePositions[i]);
+            ropeRenderer.SetPosition(i, ropePositions[i].position);
     }
 
 
 
     public void ResetRope()
     {
-        ropePositions = new List<Vector2>();
+        ropePositions = new List<Transform>();
         angleWraps = new List<int>();
         distanceJoint.enabled = false;
         UpdateRopeRenderer();
+    }
+
+
+
+    private Transform GetTempTransform()
+    {
+        Transform temp = tempTransforms.Pop();
+        temp.SetParent(terrainParent);
+        return temp;
+    }
+    private Transform GetTempTransform(Vector2 newPosition)
+    {
+        Transform temp = tempTransforms.Pop();
+        temp.SetParent(terrainParent);
+        temp.position = newPosition;
+        return temp;
+    }
+
+
+
+    private void RecycleTransform(Transform temp)
+    {
+        tempTransforms.Push(temp);
     }
 
 
