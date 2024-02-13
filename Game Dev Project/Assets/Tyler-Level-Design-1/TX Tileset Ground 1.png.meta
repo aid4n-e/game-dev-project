@@ -1382,8 +1382,8 @@ TextureImporter:
       name: TX Tileset Ground_31
       rect:
         serializedVersion: 2
-        x: 192
-        y: 320
+        x: 294
+        y: 275
         width: 32
         height: 32
       alignment: 0
@@ -1403,8 +1403,8 @@ TextureImporter:
       name: TX Tileset Ground_32
       rect:
         serializedVersion: 2
-        x: 224
-        y: 320
+        x: 220
+        y: 373
         width: 32
         height: 32
       alignment: 0
@@ -3873,9 +3873,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 128
-        y: 480
-        width: 32
-        height: 32
+        y: 447
+        width: 64
+        height: 64
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -4013,7 +4013,7 @@ TextureImporter:
       name: TX Tileset Ground_154
       rect:
         serializedVersion: 2
-        x: 224
+        x: 225
         y: 448
         width: 32
         height: 32
