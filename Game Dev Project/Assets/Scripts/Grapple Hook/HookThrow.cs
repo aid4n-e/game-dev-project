@@ -31,15 +31,7 @@ public class HookThrow : MonoBehaviour {
         
         if (fire) {
 
-            ResetThrow();
 
-            fire = false;
-            thrown = true;
-            stuck = false;
-
-            hookRb.bodyType = RigidbodyType2D.Dynamic;
-            hookRb.velocity = Vector2.zero;
-            hookRb.position = gh.player.position;
 
             Throw(chargeTime);
         }
@@ -54,7 +46,16 @@ public class HookThrow : MonoBehaviour {
 
 
 
-    void Throw(float charge) {
+    public void Throw(float charge) {
+        ResetThrow();
+
+        fire = false;
+        thrown = true;
+        stuck = false;
+
+        hookRb.bodyType = RigidbodyType2D.Dynamic;
+        hookRb.velocity = Vector2.zero;
+        hookRb.position = gh.player.position;
 
         float strength = chargeScalar * Mathf.Clamp((20 * Mathf.Pow(charge, 4.5f) + 1f * Mathf.Pow(charge, 0.4f) + 0.7f),0f,2f);  // Desmos: 20x^{4.5}\ +\ 1x^{0.4}\ +\ 0.7
 
@@ -66,18 +67,20 @@ public class HookThrow : MonoBehaviour {
 
 
 
-    void Attach() {
+    public void Attach() {
 
-        stuck = true;
-        hookRb.bodyType = RigidbodyType2D.Static;
-        gh.distanceJoint.enabled = true;
+        if(!stuck) {
+
+            stuck = true;
+            hookRb.bodyType = RigidbodyType2D.Static;
+            gh.distanceJoint.enabled = true;
+        }
+
     }
 
 
 
     void ResetThrow() {
-
-        gh.ResetRope();
 
         stuck = false;
         thrown = false;
