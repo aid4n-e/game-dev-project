@@ -82,6 +82,8 @@ public class HookThrow : MonoBehaviour {
 
     void ResetThrow() {
 
+        gh.ResetRope();
+
         stuck = false;
         thrown = false;
         fire = false;

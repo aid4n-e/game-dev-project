@@ -44,11 +44,15 @@ public class GrappleHook : MonoBehaviour {
     private Stack<Transform> tempTransforms = new Stack<Transform>();
     private GameObject referencePoint;
 
+
+
     private void Awake() {
         foreach (Transform temp in storageParent.GetComponentsInChildren<Transform>()) {
             RecycleTransform(temp);
         }
     }
+
+
 
     private void Start() {
         referencePoint = new GameObject("referencePoint");
@@ -87,12 +91,13 @@ public class GrappleHook : MonoBehaviour {
 
     private void SpawnRope() {
         ResetRope();
+        //distanceJoint.enabled = true;
+
         ropePositions.Add(hook.transform);
         ropePositions.Add(player.transform);
         rope.SetActive(true);
-
-
     }
+
 
 
     /* This method checks if 
@@ -121,13 +126,8 @@ public class GrappleHook : MonoBehaviour {
         GetAngles();
         CheckUnwrap();
 
-        //foreach (double[] a in angles) Debug.Log(a[2]);
-
         // Set the anchor position
-        anchor.position = ropePositions.ElementAt(ropePositions.Count() - 1).position;
-
-        /* Adjust the length of the rope
-         * to match the max distance */
+        anchor.position = ropePositions.ElementAt(ropePositions.Count()-2).position;
     }
 
 
@@ -136,7 +136,7 @@ public class GrappleHook : MonoBehaviour {
     private void SetDistance() {
 
         float distance = 0;
-        for (int i = 0; i < ropePositions.Count - 1; i++)
+        for (int i = 0; i < ropePositions.Count() - 1; i++)
             distance += Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position);
 
         distanceJoint.distance = (maxLength - distance);
@@ -242,7 +242,7 @@ public class GrappleHook : MonoBehaviour {
                         if (valid) {
 
                             Debug.Log("WRAPPING: " + i);
-                            Debug.Break();
+                            //Debug.Break();
 
                             Transform holdPoint = GetTempTransform();
                             holdPoint.name = "holdPoint" + (ropePositions.Count() - 2);
@@ -300,7 +300,7 @@ public class GrappleHook : MonoBehaviour {
                     GetAngles();
 
                     i = -1;
-                    Debug.Break();
+                    //Debug.Break();
                 }
 
                 i++;
@@ -340,6 +340,9 @@ public class GrappleHook : MonoBehaviour {
     {
         return (GetTempTransform(new Vector2(0, 0)));
     }
+
+
+
     private Transform GetTempTransform(Vector2 newPosition)
     {
         if(tempTransforms.Count == 0) {
@@ -350,6 +353,7 @@ public class GrappleHook : MonoBehaviour {
         temp.position = newPosition;
         return temp;
     }
+
 
 
     /* Recycles a transform into the temp stack.
@@ -376,5 +380,4 @@ public class GrappleHook : MonoBehaviour {
         Vector2 result = orderedDictionary.Any() ? orderedDictionary.First().Value : Vector2.zero;
         return result;
     }
-
 }
