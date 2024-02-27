@@ -7,9 +7,9 @@ public class HookCollisionCheck : MonoBehaviour
 
     public HookThrow hookThrow;
 
-    // Update is called once per frame
-    void onCollisionEnter2D()
+    void OnCollisionEnter2D(Collision2D col)
     {
-        hookThrow.Attach();
+        Transform newHookParent = col.transform;
+        hookThrow.Attach(newHookParent);
     }
 }

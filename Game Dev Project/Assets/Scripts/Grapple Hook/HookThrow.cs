@@ -16,9 +16,10 @@ public class HookThrow : MonoBehaviour {
 
     private bool stuck;
 
-    // Start is called before the first frame update
-    void Start() {
 
+
+    private void Awake() {
+        ResetThrow();
     }
 
 
@@ -34,9 +35,7 @@ public class HookThrow : MonoBehaviour {
 
 
             Throw(chargeTime);
-        }
-
-        if(Vector2.Distance(gh.player.position, gh.hook.position) > gh.maxLength + 0.1f) {
+        } else if(Vector2.Distance(gh.player.position, gh.hook.position) > gh.maxLength + 0.1f) {
 
             Debug.Log("BROKEN; Distance = " + Vector2.Distance(gh.player.position, gh.hook.position));
             ResetThrow();
@@ -67,12 +66,13 @@ public class HookThrow : MonoBehaviour {
 
 
 
-    public void Attach() {
+    public void Attach(Transform newHookParent) {
 
         if(!stuck) {
 
             stuck = true;
             hookRb.bodyType = RigidbodyType2D.Static;
+            hookRb.transform.SetParent(newHookParent);
             gh.distanceJoint.enabled = true;
         }
 
@@ -82,22 +82,23 @@ public class HookThrow : MonoBehaviour {
 
     void ResetThrow() {
 
+        hookRb.transform.SetParent(gh.storageParent);
+        hookRb.transform.position = gh.player.position;
+
         gh.ResetRope();
 
         stuck = false;
         thrown = false;
         fire = false;
 
-        //hookRb.GetComponent<GameObject>().SetActive(false);
         hookRb.velocity = Vector2.zero;
     }
 
 
 
-    private void OnCollisionEnter2D(Collision2D collision) {
-
-        Debug.Log("HIT");
-        Attach();
+    void OnCollisionEnter2D(Collision2D col) {
+        Transform newHookParent = col.transform;
+        Attach(newHookParent);
     }
 
 }

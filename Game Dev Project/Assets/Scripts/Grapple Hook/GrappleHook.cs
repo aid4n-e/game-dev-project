@@ -89,6 +89,17 @@ public class GrappleHook : MonoBehaviour {
 
 
 
+    public void ResetRope() {
+        ropePositions = new List<Transform>();
+        angleWraps = new List<int>();
+        distanceJoint.enabled = false;
+        rope.SetActive(true);
+        UpdateRopeRenderer();
+        rope.SetActive(false);
+    }
+
+
+
     private void SpawnRope() {
         ResetRope();
         //distanceJoint.enabled = true;
@@ -136,7 +147,7 @@ public class GrappleHook : MonoBehaviour {
     private void SetDistance() {
 
         float distance = 0;
-        for (int i = 0; i < ropePositions.Count() - 1; i++)
+        for (int i = 0; i < ropePositions.Count() - 2; i++)
             distance += Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position);
 
         distanceJoint.distance = (maxLength - distance);
@@ -320,17 +331,6 @@ public class GrappleHook : MonoBehaviour {
         // Render a rope through every point
         for (int i = 0; i < ropeRenderer.positionCount; i++)
             ropeRenderer.SetPosition(i, ropePositions[i].position);
-    }
-
-
-
-    public void ResetRope()
-    {
-        ropePositions = new List<Transform>();
-        angleWraps = new List<int>();
-        distanceJoint.enabled = false;
-        rope.SetActive(true);
-        UpdateRopeRenderer();
     }
 
 

@@ -14,10 +14,9 @@ public class PlayerMovement : MonoBehaviour
     Rigidbody2D playerRigidBody;
     Animator playerAnimator;
     CapsuleCollider2D playerCapsuleCollider;
-    PolygonCollider2D playerPolygonCollider;
 
-
-    [SerializeField] float  playerSpeed = 10f;    //  create a variable that is adjustable within the Unity Engine Window
+    [SerializeField] float maxWalkSpeed = 2;
+    [SerializeField] float  playerSpeed = 10f;  //  create a variable that is adjustable within the Unity Engine Window
     [SerializeField] float playerJump = 5f;
     [SerializeField] float climbingSpeed = 5f;
 
@@ -37,7 +36,7 @@ public class PlayerMovement : MonoBehaviour
     }
     void OnMove(InputValue value)       //      take 'value' we recieve from our player input and store it in 'moveInput' // Vector2 
     {
-        moveInput = value.Get<Vector2>();   //
+        moveInput = value.Get<Vector2>();
        // Debug.Log(moveInput);
     }
      void OnJump(InputValue value)
@@ -53,6 +52,7 @@ public class PlayerMovement : MonoBehaviour
              }     
          }
      }
+
     void ClimbLadder()
     {
         if (playerCapsuleCollider.IsTouchingLayers(LayerMask.GetMask("ClimbLadder"))) 
@@ -71,25 +71,23 @@ public class PlayerMovement : MonoBehaviour
 
         
     }
-/*
-     void ClimbLadder()
-     {
-         if (!playerCapsuleCollider.IsTouchingLayers(LayerMask.GetMask("ClimbLadder"))) // Wall stick bug was fixed by adding a second capsule collider holding a physics 2D material with 0 to both stats. then altered to be wider than the original capsule collider we use for jumping.
-         { return;  }
-             Debug.Log("tried to climb the ladder");
 
-             Vector2 ClimbingVelocity = new Vector2(playerRigidBody.velocity.x ,playerRigidBody.velocity.y * climbingSpeed);    //  When the player presses a key or button that corresponds to the player moving right or left the method will move the character at the corressponding speed which can be adjusted in the Unity engine because 'playerSpeed' is in a [serializefield] variable
-             playerRigidBody.velocity = ClimbingVelocity;   
-     }
-            //  Has a bad reaction with the tilemap colliders trigger on the ladder object
+    void Run() {
 
- */
-    void Run()
-    {
-        Vector2 playerVelocity = new Vector2(moveInput.x * playerSpeed,playerRigidBody.velocity.y);    //  When the player presses a key or button that corresponds to the player moving right or left the method will move the character at the corressponding speed which can be adjusted in the Unity engine because 'playerSpeed' is in a [serializefield] variable
-        playerRigidBody.velocity = playerVelocity;
+        bool valid = true;
 
-        if(moveInput.x != 0)                                //  Instructor did this differently in Video 83 of TileVania //     bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon; followed by :     playerAnimator.SetBool("isRunning", true);
+        if(Mathf.Abs(playerRigidBody.velocity.x) > maxWalkSpeed) {
+            if( (playerRigidBody.velocity.x > 0 && moveInput.x > 0) || (playerRigidBody.velocity.x < 0 && moveInput.x < 0) ) {
+                valid = false;
+            }
+        }
+        if(valid)
+            playerRigidBody.AddForce(Vector2.right * moveInput.x * playerSpeed);
+
+        //Vector2 playerVelocity = new Vector2(moveInput.x * playerSpeed,playerRigidBody.velocity.y);    //  When the player presses a key or button that corresponds to the player moving right or left the method will move the character at the corressponding speed which can be adjusted in the Unity engine because 'playerSpeed' is in a [serializefield] variable
+        //playerRigidBody.velocity = playerVelocity;
+
+        if (moveInput.x != 0)                                //  Instructor did this differently in Video 83 of TileVania //     bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon; followed by :     playerAnimator.SetBool("isRunning", true);
             playerAnimator.SetBool("isRunning", true);
 
         else
