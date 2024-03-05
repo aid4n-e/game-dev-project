@@ -7,9 +7,21 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using static UnityEngine.UI.Image;
 
+/* This class handles setting the distance of the rigidbody joint,
+ * checking if the rope can wrap/unwrap using raycasts and angles,
+ * and updating the rope's line renderer
+ * 
+ * 
+ * 
+ *  */
+
+
+
 public class GrappleHook : MonoBehaviour {
 
     // PUBLIC VARIABLES
+    public ReferenceManager rm;
+
     public Transform player;
     public GameObject rope;
     public Transform anchor;
@@ -17,36 +29,36 @@ public class GrappleHook : MonoBehaviour {
     public Transform storageParent;
     public LineRenderer ropeRenderer;
     public DistanceJoint2D distanceJoint;
-    public HookThrow hookThrow;
     public GameObject holdPointPrefab;
 
     // Defines which layers the rope can collide with
     public LayerMask ropeLayerMask;
 
     public float maxLength;
-    public bool snap;
+    public bool fire, pull, reset, snap;
+    public float pullSpeed;
 
     // PRIVATE VARIABLES
     private Vector2 oldPlayerPos;
 
-    private List<Transform> ropePositions = new List<Transform>();
+    public List<Transform> ropePositions = new List<Transform>();
 
     /* Stores int 1 or -1 for each rope vertex
      * depending on whether the rope was wrapped
      * clockwise or counter-clockwise */
     private List<int> angleWraps = new List<int>();
 
-    [SerializeField]
-    private bool fire, reset;
-
+    private Rigidbody2D playerRb;
     private List<double[]> angles = new List<double[]>();
     private List<double[]> oldAngles = new List<double[]>();
-    private Stack<Transform> tempTransforms = new Stack<Transform>();
+    public Stack<Transform> tempTransforms = new Stack<Transform>();
     private GameObject referencePoint;
 
 
 
     private void Awake() {
+        playerRb = player.GetComponent<Rigidbody2D>();
+
         foreach (Transform temp in storageParent.GetComponentsInChildren<Transform>()) {
             RecycleTransform(temp);
         }
@@ -67,8 +79,15 @@ public class GrappleHook : MonoBehaviour {
 
         if (fire) {
             fire = false;
-            hookThrow.Throw(0.4f);
-            SpawnRope();
+            //ResetRope();
+            //rm.hookThrow.ResetThrow();
+            rm.hookThrow.Throw(0.4f, Vector2.right);
+            //SpawnRope();
+        }
+        else if(pull) {
+
+            pull = false;
+
         }
         else if (reset || snap) {
 
@@ -80,8 +99,9 @@ public class GrappleHook : MonoBehaviour {
         else if (ropePositions.Count > 0) {
             
             HandleRopePositions();
-            SetDistance();
             UpdateRopeRenderer();
+
+            distanceJoint.distance = (maxLength - GetDistance(false));
         }
 
         oldPlayerPos = player.position;
@@ -89,26 +109,32 @@ public class GrappleHook : MonoBehaviour {
 
 
 
+    public void Pull(float charge) {
+
+        ResetRope();
+        rm.hookThrow.ResetThrow();
+
+        Vector2 dir = (anchor.position - player.position).normalized * charge / 2;
+
+        //playerRb.AddForce(-playerRb.velocity * playerRb.mass, ForceMode2D.Impulse);  // Cancel player's velocity first
+        playerRb.AddForce(new Vector2(dir.x, dir.y) * pullSpeed, ForceMode2D.Impulse);  // Launch player toward anchor
+
+    }
+
+
+
     public void ResetRope() {
+
         ropePositions = new List<Transform>();
         angleWraps = new List<int>();
+        maxLength = 30;
         distanceJoint.enabled = false;
-        rope.SetActive(true);
-        UpdateRopeRenderer();
         rope.SetActive(false);
-    }
-
-
-
-    private void SpawnRope() {
-        ResetRope();
-        //distanceJoint.enabled = true;
-
         ropePositions.Add(hook.transform);
         ropePositions.Add(player.transform);
-        rope.SetActive(true);
+        hook.GetComponent<SpriteRenderer>().enabled = false;
+        UpdateRopeRenderer();
     }
-
 
 
     /* This method checks if 
@@ -128,6 +154,7 @@ public class GrappleHook : MonoBehaviour {
             ropePositions.Add(temp);
 
             CheckWrap();
+            RecycleTransform(temp);
         }
 
         ropePositions.RemoveAt(ropePositions.Count - 1);
@@ -144,13 +171,25 @@ public class GrappleHook : MonoBehaviour {
 
 
     /* Get the distance between each segment of the rope */
-    private void SetDistance() {
+    public float GetDistance(bool includePlayer) {
 
         float distance = 0;
-        for (int i = 0; i < ropePositions.Count() - 2; i++)
-            distance += Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position);
 
-        distanceJoint.distance = (maxLength - distance);
+        if (includePlayer) {
+
+            if(ropePositions.Count() > 1)
+                distance = Vector2.Distance(ropePositions.ElementAt(ropePositions.Count-2).position, ropePositions.ElementAt(ropePositions.Count - 1).position);
+            //Debug.Log(ropePositions.Count);
+        }
+
+        for (int i = 0; i < ropePositions.Count() - 2; i++) {
+            distance += Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position);
+        }
+
+        //if(includePlayer)
+            //Debug.Log("DISTANCE: " + distance);
+
+        return distance;
     }
 
 
@@ -204,6 +243,7 @@ public class GrappleHook : MonoBehaviour {
         int i = 0;
 
         do {
+            //Debug.Log("i = " + i);
 
             Vector2[,] raycastInfo = new Vector2[2, 2];  //[x][0] = direction, [x][1] = origin
             Vector2 closestPointToHit;
@@ -217,6 +257,7 @@ public class GrappleHook : MonoBehaviour {
             Debug.DrawRay(raycastInfo[1, 1], raycastInfo[1, 0] * (Vector2.Distance(ropePositions.ElementAt(i).position, ropePositions.ElementAt(i + 1).position) - 0.2f), Color.red);  // Reverse ray 
 
             for (int j = 0; j < 2; j++) {
+                //Debug.Log("j = " + j);
 
                 bool valid = true;
 
@@ -242,10 +283,10 @@ public class GrappleHook : MonoBehaviour {
                         dir = (closestPointToHit - (Vector2)colliderWithVertices.transform.position).normalized;
 
                         // Ensure the rope position was not already added recently
-                        for (int n = i - 1; n < i + 1; n++) {
-                            if (n > 0 && n < ropePositions.Count() - 1) {
+                        for (int n = i - 1; n < i + 2; n++) {
+                            if (n > -1 && n < ropePositions.Count()) {
                                 Debug.Log("WRAP: i = " + i + ";  d" + n + " = " + Vector2.Distance(ropePositions.ElementAt(n).position, referencePoint.transform.position));
-                                if (Vector2.Distance(ropePositions.ElementAt(n).position, referencePoint.transform.position) < 0.1)
+                                if (Vector2.Distance(ropePositions.ElementAt(n).position, referencePoint.transform.position) < 0.2f)
                                     valid = false;
                             }
                         }

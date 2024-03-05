@@ -7,95 +7,186 @@ using UnityEngine.InputSystem;
 
 
 
-public class PlayerMovement : MonoBehaviour
-{
+public class PlayerMovement : MonoBehaviour {
+    public ReferenceManager rm;
+
     Vector2 moveInput;  // Use Vector2 to look at / augment character movement  //          If we are going left, right, up, down we will be storing it in ' moveInput'
+    Vector2 throwInput;
+    Vector2 throwDirection;
+
+    bool onJump, releaseJump, onFire, releaseFire;
 
     Rigidbody2D playerRigidBody;
     Animator playerAnimator;
     CapsuleCollider2D playerCapsuleCollider;
 
-    [SerializeField] float maxWalkSpeed = 2;
-    [SerializeField] float  playerSpeed = 10f;  //  create a variable that is adjustable within the Unity Engine Window
-    [SerializeField] float playerJump = 5f;
-    [SerializeField] float climbingSpeed = 5f;
+    public bool grounded, throwCharging, pullCharging;
 
-    void Start()
-    {
+    float chargeTime, pullChargeTime;
+
+    [SerializeField] float maxSwingSpeed = 8;
+    [SerializeField] float maxWalkSpeed = 2;
+    [SerializeField] float walkSpeed = 10f;
+    [SerializeField] float jumpSpeed = 5f;
+    [SerializeField] float pullSpeed = 2f;
+
+    [SerializeField] InputActionReference move, grapple, fire, jump;
+
+
+    void Start() {
+
         playerRigidBody = GetComponent<Rigidbody2D>();  //  the GetComponent<>(); method will hold the unity component we are trying to access, hence our playerRigidBody which is of the RigidBody2D class will be held as a parameter in GetComponent<>(); as GetComponent<RigidBody2D>();
         
         playerAnimator = GetComponent<Animator>();  //  these variables are global because we will be accessing them throughout the program
 
         playerCapsuleCollider = GetComponent<CapsuleCollider2D>();  //  Set up a reference to alter the players referenced capsule collider
     }
-    void Update()
-    {
-        Run();
-        FlipSprite();
-        ClimbLadder();
-    }
-    void OnMove(InputValue value)       //      take 'value' we recieve from our player input and store it in 'moveInput' // Vector2 
-    {
-        moveInput = value.Get<Vector2>();
-       // Debug.Log(moveInput);
-    }
-     void OnJump(InputValue value)
-     {
-         // if (playerPolygonCollider.IsTouchingLayers(LayerMask.GetMask("Ground")))        //  Here we are checking if the LayerMask, in this case our "Ground" layer is touching the players capsule collider
 
-         if (playerCapsuleCollider.IsTouchingLayers(LayerMask.GetMask("Ground")) || playerCapsuleCollider.IsTouchingLayers(LayerMask.GetMask("ClimbLadder"))) // Wall stick bug was fixed by adding a second capsule collider holding a physics 2D material with 0 to both stats. then altered to be wider than the original capsule collider we use for jumping.
-         {   
-             if (value.isPressed)
-             {
-                 Debug.Log("tried to jump");
-                 playerRigidBody.velocity += new Vector2(0f, playerJump);
-             }     
-         }
-     }
+    private void Update() {
+        GetInputs();
 
-    void ClimbLadder()
-    {
-        if (playerCapsuleCollider.IsTouchingLayers(LayerMask.GetMask("ClimbLadder"))) 
-        { 
-            Vector2 climbVelocity = new Vector2(playerRigidBody.velocity.x, moveInput.y * climbingSpeed);
-            playerRigidBody.velocity = climbVelocity;
-            
-            if (moveInput.y != 0)// || moveInput.y == 0)                                //  Instructor did this differently in Video 83 of TileVania //     bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon; followed by :     playerAnimator.SetBool("isRunning", true);
-                playerAnimator.SetBool("isClimbingLadder", true);
-        
-            else
-                playerAnimator.SetBool("isClimbingLadder", false);
+        if (onJump && grounded) {
 
+            playerRigidBody.AddForce(Vector2.up * jumpSpeed, ForceMode2D.Impulse);
+        }
+        else if (onJump && !grounded && rm.hookThrow.attached) {
+
+            playerRigidBody.AddForce(playerRigidBody.velocity*0.5f, ForceMode2D.Impulse);
+            rm.grappleHook.ResetRope();
+            rm.hookThrow.ResetThrow();
 
         }
 
-        
+
+        if (onFire) {
+
+            if (rm.hookThrow.attached) {
+
+                pullCharging = true;
+                pullChargeTime = Time.time;
+                rm.grappleHook.pull = true;
+            }
+            else if (!throwCharging) {
+
+                throwCharging = true;
+                chargeTime = Time.time;
+            }
+        }
+
+        else if (releaseFire) {
+
+            if (throwCharging) {
+
+                throwCharging = false;
+                rm.grappleHook.ResetRope();
+                rm.hookThrow.ResetThrow();
+                rm.hookThrow.Throw(Mathf.Clamp(Time.time - chargeTime,0.1f, 1f), throwDirection);
+            }
+            else if (pullCharging && rm.hookThrow.attached) {
+
+                pullChargeTime = Mathf.Clamp(Time.time - pullChargeTime, 0.1f, 0.5f);
+                rm.grappleHook.Pull(pullChargeTime * pullSpeed);
+            }
+            else if (pullCharging)
+                pullCharging = false;
+        }
+
+
+
+
+        if(rm.hookThrow.attached) {
+
+            if (moveInput.y > 0)
+                rm.grappleHook.maxLength -= 0.02f;
+            else if (moveInput.y < 0)
+                rm.grappleHook.maxLength += 0.02f;
+        }
+
     }
 
-    void Run() {
+    void FixedUpdate() {
+
+        CheckGrounded();
+
+        Move();
+
+        FlipSprite();
+    }
+
+
+    void GetInputs() {
+
+        moveInput = move.action.ReadValue<Vector2>();
+        throwInput = grapple.action.ReadValue<Vector2>();
+
+        onFire = grapple.action.WasPressedThisFrame();
+        releaseFire = grapple.action.WasReleasedThisFrame();
+
+        onJump = jump.action.WasPressedThisFrame();
+        releaseJump = jump.action.WasReleasedThisFrame();
+
+        if (throwInput.y > 0.3f)
+            throwDirection = new Vector2(0,1.2f);
+        else if (throwInput.y < -0.3f)
+            throwDirection = new Vector2(0, -0.5f);
+        else if (throwInput.x > 0.3f)
+            throwDirection = new Vector2(0.6f, 0.8f);
+        else if (throwInput.x < -0.3f)
+            throwDirection = new Vector2(-0.6f, 0.8f);
+
+    }
+
+    void CheckGrounded() {
+
+        RaycastHit2D boxCast = Physics2D.BoxCast(this.transform.position, new Vector2(0.5f,0.15f), 0, Vector2.down, 0.5f, rm.terrainLayer);
+        //Debug.Log(boxCast.collider != null);
+        grounded = (boxCast.collider != null);
+    }
+
+
+    void Pull() {
+
+        if (!grounded && rm.hookThrow.attached) {
+
+            playerRigidBody.AddForce((Vector2.up * jumpSpeed) + new Vector2(0, -playerRigidBody.velocity.y * playerRigidBody.mass) * 0.8f, ForceMode2D.Impulse);
+            rm.grappleHook.ResetRope();
+            rm.hookThrow.ResetThrow();
+        }
+    }
+
+
+    void Move() {
 
         bool valid = true;
 
-        if(Mathf.Abs(playerRigidBody.velocity.x) > maxWalkSpeed) {
-            if( (playerRigidBody.velocity.x > 0 && moveInput.x > 0) || (playerRigidBody.velocity.x < 0 && moveInput.x < 0) ) {
-                valid = false;
+        if(!grounded && rm.hookThrow.attached) {
+            if (Mathf.Abs(playerRigidBody.velocity.magnitude) > maxSwingSpeed) {
+                if ((playerRigidBody.velocity.x > 0 && moveInput.x > 0) || (playerRigidBody.velocity.x < 0 && moveInput.x < 0)) {
+                    valid = false;
+                }
             }
-        }
-        if(valid)
-            playerRigidBody.AddForce(Vector2.right * moveInput.x * playerSpeed);
+            if (valid)
+                playerRigidBody.AddForce(Vector2.right * moveInput.x * walkSpeed * (Mathf.Clamp(playerRigidBody.velocity.x, 0.005f, 0.08f) + Mathf.Clamp(Mathf.Abs(playerRigidBody.velocity.y), 0.005f, 0.08f)));
+        } else {
 
-        //Vector2 playerVelocity = new Vector2(moveInput.x * playerSpeed,playerRigidBody.velocity.y);    //  When the player presses a key or button that corresponds to the player moving right or left the method will move the character at the corressponding speed which can be adjusted in the Unity engine because 'playerSpeed' is in a [serializefield] variable
-        //playerRigidBody.velocity = playerVelocity;
+            if (Mathf.Abs(playerRigidBody.velocity.x) > maxWalkSpeed) {
+                if ((playerRigidBody.velocity.x > 0 && moveInput.x > 0) || (playerRigidBody.velocity.x < 0 && moveInput.x < 0)) {
+                    valid = false;
+                }
+            }
+            if (valid)
+                playerRigidBody.AddForce(Vector2.right * moveInput.x * walkSpeed);
+        }
 
         if (moveInput.x != 0)                                //  Instructor did this differently in Video 83 of TileVania //     bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon; followed by :     playerAnimator.SetBool("isRunning", true);
             playerAnimator.SetBool("isRunning", true);
 
         else
             playerAnimator.SetBool("isRunning", false);
-        
-      //  bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.y) > Mathf.Epsilon;
-       // playerAnimator.SetBool("isRunning", playerHasHorizontalSpeed);
+
     }
+
+
     void FlipSprite()
     {
         bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon;  //  playerRigidBody by default faces to the right side, so if the value of x < 0 (or epsilon) than the character will instead be facing left                                                                                          

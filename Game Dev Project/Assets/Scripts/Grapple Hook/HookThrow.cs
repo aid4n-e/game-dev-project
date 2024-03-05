@@ -5,7 +5,8 @@ using UnityEngine;
 
 public class HookThrow : MonoBehaviour {
 
-    public GrappleHook gh;
+    public ReferenceManager rm;
+
     public Rigidbody2D hookRb;
 
     public float gravity;
@@ -14,7 +15,7 @@ public class HookThrow : MonoBehaviour {
     public float chargeScalar;
     public float chargeTime;
 
-    private bool stuck;
+    public bool attached;
 
 
 
@@ -27,76 +28,72 @@ public class HookThrow : MonoBehaviour {
     // Update is called once per frame
     void FixedUpdate() {
 
-        if(!stuck)
+        if(!attached)
             hookRb.AddForce((Vector2.down * (gravity*100)) * Time.fixedDeltaTime, ForceMode2D.Force);
         
-        if (fire) {
+        if(rm.grappleHook.ropePositions.Count > 1 && rm.grappleHook.GetDistance(true) > rm.grappleHook.maxLength + 0.5f) {
 
-
-
-            Throw(chargeTime);
-        } else if(Vector2.Distance(gh.player.position, gh.hook.position) > gh.maxLength + 0.1f) {
-
-            Debug.Log("BROKEN; Distance = " + Vector2.Distance(gh.player.position, gh.hook.position));
+            //Debug.Log("BROKEN; Distance = " + rm.grappleHook.GetDistance(true));
             ResetThrow();
+            rm.grappleHook.ResetRope();
         }
 
     }
 
 
 
-    public void Throw(float charge) {
-        ResetThrow();
+    public void Throw(float charge, Vector2 dir) {
+
+        hookRb.GetComponent<SpriteRenderer>().enabled = true;
+
+        hookRb.position = rm.grappleHook.player.position;
+
+        hookRb.bodyType = RigidbodyType2D.Dynamic;
 
         fire = false;
         thrown = true;
-        stuck = false;
+        attached = false;
 
-        hookRb.bodyType = RigidbodyType2D.Dynamic;
-        hookRb.velocity = Vector2.zero;
-        hookRb.position = gh.player.position;
-
-        float strength = chargeScalar * Mathf.Clamp((20 * Mathf.Pow(charge, 4.5f) + 1f * Mathf.Pow(charge, 0.4f) + 0.7f),0f,2f);  // Desmos: 20x^{4.5}\ +\ 1x^{0.4}\ +\ 0.7
-
-        Vector2 force = new Vector2(1, 1) * strength;
-        //Debug.Log(strength);
-
+        float strength = chargeScalar * Mathf.Clamp((1f * Mathf.Pow(charge, 9f) + 1.5f * Mathf.Pow(charge, 0.5f)),0.5f,2f);  // Desmos: 20x^{4.5}\ +\ 1x^{0.4}\ +\ 0.7  OR  1x^{9}\ +\ 1.5x^{0.5}
+        Vector2 force = dir * strength + rm.grappleHook.player.GetComponent<Rigidbody2D>().velocity;
         hookRb.AddForce(force, ForceMode2D.Impulse);
+
+        rm.grappleHook.rope.SetActive(true);
     }
 
 
 
     public void Attach(Transform newHookParent) {
 
-        if(!stuck) {
+        if(!attached) {
 
-            stuck = true;
-            hookRb.bodyType = RigidbodyType2D.Static;
+            attached = true;
+            hookRb.bodyType = RigidbodyType2D.Static;   
             hookRb.transform.SetParent(newHookParent);
-            gh.distanceJoint.enabled = true;
+            rm.grappleHook.maxLength = rm.grappleHook.GetDistance(true) + 0.5f;
+            rm.grappleHook.distanceJoint.enabled = true;
         }
 
     }
 
 
 
-    void ResetThrow() {
+    public void ResetThrow() {
 
-        hookRb.transform.SetParent(gh.storageParent);
-        hookRb.transform.position = gh.player.position;
+        hookRb.bodyType = RigidbodyType2D.Static;
 
-        gh.ResetRope();
+        hookRb.transform.SetParent(rm.grappleHook.storageParent);
+        hookRb.transform.position = rm.grappleHook.player.position;
 
-        stuck = false;
+        attached = false;
         thrown = false;
         fire = false;
-
-        hookRb.velocity = Vector2.zero;
     }
 
 
 
     void OnCollisionEnter2D(Collision2D col) {
+
         Transform newHookParent = col.transform;
         Attach(newHookParent);
     }
