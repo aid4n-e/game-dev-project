@@ -49,6 +49,7 @@ public class PlayerMovement : MonoBehaviour {
 
             playerRigidBody.AddForce(Vector2.up * jumpSpeed, ForceMode2D.Impulse);
         }
+
         else if (onJump && !grounded && rm.hookThrow.attached) {
 
             playerRigidBody.AddForce(playerRigidBody.velocity*0.5f, ForceMode2D.Impulse);
@@ -82,22 +83,24 @@ public class PlayerMovement : MonoBehaviour {
                 rm.hookThrow.ResetThrow();
                 rm.hookThrow.Throw(Mathf.Clamp(Time.time - chargeTime,0.1f, 1f), throwDirection);
             }
+
             else if (pullCharging && rm.hookThrow.attached) {
 
                 pullChargeTime = Mathf.Clamp(Time.time - pullChargeTime, 0.1f, 0.5f);
                 rm.grappleHook.Pull(pullChargeTime * pullSpeed);
             }
+
             else if (pullCharging)
                 pullCharging = false;
         }
 
 
-
-
         if(rm.hookThrow.attached) {
 
-            if (moveInput.y > 0)
-                rm.grappleHook.maxLength -= 0.02f;
+            if (moveInput.y > 0) {
+                if (rm.grappleHook.GetDistance(true) < rm.grappleHook.maxLength + 0.1f)
+                    rm.grappleHook.maxLength -= 0.02f;
+            }
             else if (moveInput.y < 0)
                 rm.grappleHook.maxLength += 0.02f;
         }
@@ -133,7 +136,6 @@ public class PlayerMovement : MonoBehaviour {
             throwDirection = new Vector2(0.6f, 0.8f);
         else if (throwInput.x < -0.3f)
             throwDirection = new Vector2(-0.6f, 0.8f);
-
     }
 
     void CheckGrounded() {
