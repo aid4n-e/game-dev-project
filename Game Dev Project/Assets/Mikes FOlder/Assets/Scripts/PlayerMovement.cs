@@ -36,13 +36,12 @@ public class PlayerMovement : MonoBehaviour {
     void Start() {
 
         playerRigidBody = GetComponent<Rigidbody2D>();  //  the GetComponent<>(); method will hold the unity component we are trying to access, hence our playerRigidBody which is of the RigidBody2D class will be held as a parameter in GetComponent<>(); as GetComponent<RigidBody2D>();
-        
         playerAnimator = GetComponent<Animator>();  //  these variables are global because we will be accessing them throughout the program
-
         playerCapsuleCollider = GetComponent<CapsuleCollider2D>();  //  Set up a reference to alter the players referenced capsule collider
     }
 
     private void Update() {
+
         GetInputs();
 
         if (onJump && grounded) {
@@ -101,10 +100,12 @@ public class PlayerMovement : MonoBehaviour {
                 if (rm.grappleHook.GetDistance(true) < rm.grappleHook.maxLength + 0.1f)
                     rm.grappleHook.maxLength -= 0.02f;
             }
-            else if (moveInput.y < 0)
-                rm.grappleHook.maxLength += 0.02f;
-        }
+            else if (moveInput.y < 0) {
+                if (rm.grappleHook.maxLength - rm.grappleHook.GetDistance(true) < 0.1f)
+                    rm.grappleHook.maxLength += 0.02f;
 
+            }
+        }
     }
 
     void FixedUpdate() {
@@ -138,9 +139,10 @@ public class PlayerMovement : MonoBehaviour {
             throwDirection = new Vector2(-0.6f, 0.8f);
     }
 
+
     void CheckGrounded() {
 
-        RaycastHit2D boxCast = Physics2D.BoxCast(this.transform.position, new Vector2(0.5f,0.15f), 0, Vector2.down, 0.5f, rm.terrainLayer);
+        RaycastHit2D boxCast = Physics2D.BoxCast(this.transform.position, new Vector2(0.5f,0.16f), 0, Vector2.down, 0.5f, rm.terrainLayer);
         //Debug.Log(boxCast.collider != null);
         grounded = (boxCast.collider != null);
     }
@@ -182,15 +184,13 @@ public class PlayerMovement : MonoBehaviour {
 
         if (moveInput.x != 0)                                //  Instructor did this differently in Video 83 of TileVania //     bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon; followed by :     playerAnimator.SetBool("isRunning", true);
             playerAnimator.SetBool("isRunning", true);
-
         else
             playerAnimator.SetBool("isRunning", false);
-
     }
 
 
-    void FlipSprite()
-    {
+    void FlipSprite() {
+
         bool playerHasHorizontalSpeed = Mathf.Abs(playerRigidBody.velocity.x) > Mathf.Epsilon;  //  playerRigidBody by default faces to the right side, so if the value of x < 0 (or epsilon) than the character will instead be facing left                                                                                          
                                                                                                 // The value of the boolean will automatically be false, so in the following if statement the characer should be facing left whenever the value of x is negative // when the player presses the corresponding key to move left
         if(playerHasHorizontalSpeed) 
