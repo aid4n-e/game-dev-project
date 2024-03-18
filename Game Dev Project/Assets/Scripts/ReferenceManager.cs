@@ -10,6 +10,7 @@ using UnityEngine;
 public class ReferenceManager : MonoBehaviour
 {
 
+    public PlayerState playerState;
     public PlayerMovement playerMovement;
     public GrappleHook grappleHook;
     public HookThrow hookThrow;

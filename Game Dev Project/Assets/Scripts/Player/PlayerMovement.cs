@@ -10,6 +10,8 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour {
     public ReferenceManager rm;
 
+    public float friction = 50;
+
     Vector2 moveInput;  // Use Vector2 to look at / augment character movement  //          If we are going left, right, up, down we will be storing it in ' moveInput'
     Vector2 throwInput;
     Vector2 throwDirection;
@@ -54,7 +56,11 @@ public class PlayerMovement : MonoBehaviour {
             playerRigidBody.AddForce(playerRigidBody.velocity*0.5f, ForceMode2D.Impulse);
             rm.grappleHook.ResetRope();
             rm.hookThrow.ResetThrow();
+        }
 
+        if(grounded && moveInput == Vector2.zero) {
+
+            playerRigidBody.AddForce(Vector2.right * friction * Mathf.Clamp(-playerRigidBody.velocity.x, -0.2f, 0.2f), ForceMode2D.Force);
         }
 
 

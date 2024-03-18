@@ -312,7 +312,7 @@ public class GrappleHook : MonoBehaviour {
                             else if (newAngle[1] > newAngle[0])
                                 angleWraps.Insert(i, 1);
 
-                            //GetAngles();
+                            GetAngles();
 
                             i++;
                             break;
