@@ -59,6 +59,8 @@ public class HookThrow : MonoBehaviour {
         hookRb.AddForce(force, ForceMode2D.Impulse);
 
         rm.grappleHook.rope.SetActive(true);
+
+        rm.audioSrc.PlayOneShot(rm.sounds[2]);
     }
 
 
@@ -72,6 +74,8 @@ public class HookThrow : MonoBehaviour {
             hookRb.transform.SetParent(newHookParent);
             rm.grappleHook.maxLength = rm.grappleHook.GetDistance(true) + 0.5f;
             rm.grappleHook.distanceJoint.enabled = true;
+
+            rm.audioSrc.PlayOneShot(rm.sounds[3]);
         }
 
     }
@@ -88,6 +92,7 @@ public class HookThrow : MonoBehaviour {
         attached = false;
         thrown = false;
         fire = false;
+        rm.audioSrc.PlayOneShot(rm.sounds[3]);
     }
 
 

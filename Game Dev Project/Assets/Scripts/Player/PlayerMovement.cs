@@ -34,6 +34,8 @@ public class PlayerMovement : MonoBehaviour {
 
     [SerializeField] InputActionReference move, grapple, fire, jump;
 
+    int soundCue;
+
 
     void Start() {
 
@@ -49,6 +51,7 @@ public class PlayerMovement : MonoBehaviour {
         if (onJump && grounded) {
 
             playerRigidBody.AddForce(Vector2.up * jumpSpeed, ForceMode2D.Impulse);
+            rm.audioSrc.PlayOneShot(rm.sounds[0]);
         }
 
         else if (onJump && !grounded && rm.hookThrow.attached) {
@@ -58,9 +61,14 @@ public class PlayerMovement : MonoBehaviour {
             rm.hookThrow.ResetThrow();
         }
 
-        if(grounded && moveInput == Vector2.zero) {
+        if(grounded && moveInput.x == 0) {
 
             playerRigidBody.AddForce(Vector2.right * friction * Mathf.Clamp(-playerRigidBody.velocity.x, -0.2f, 0.2f), ForceMode2D.Force);
+        }
+
+        if(throwCharging) {
+
+            //if(chargeTime - Time.time < )
         }
 
 
@@ -76,6 +84,8 @@ public class PlayerMovement : MonoBehaviour {
 
                 throwCharging = true;
                 chargeTime = Time.time;
+                rm.audioSrc.PlayOneShot(rm.sounds[5]);
+                soundCue = 1;
             }
         }
 

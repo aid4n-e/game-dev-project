@@ -20,6 +20,8 @@ public class PlayerState : MonoBehaviour
 
         playerRb.velocity = Vector2.zero;
         player.position = respawnPos;
+
+        rm.audioSrc.PlayOneShot(rm.sounds[0]);
     }
 
 }

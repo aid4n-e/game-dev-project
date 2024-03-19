@@ -18,6 +18,9 @@ public class ReferenceManager : MonoBehaviour
     public LayerMask playerLayer;
     public LayerMask terrainLayer;
 
+    public AudioSource audioSrc;
+    public AudioClip[] sounds;
+
     private void Start() {
 
         if(playerMovement == null)
