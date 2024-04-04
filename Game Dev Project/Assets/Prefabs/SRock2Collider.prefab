@@ -31,7 +31,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 13
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &2681498402033076210
 SpriteRenderer:
@@ -129,12 +129,8 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -0.07402189, y: 0.15815228}
-      - {x: -0.17722867, y: 0.14608707}
-      - {x: -0.280109, y: -0.010815047}
-      - {x: -0.29206568, y: -0.15413058}
-      - {x: 0.25815228, y: -0.16010877}
-      - {x: 0.30804378, y: -0.12320672}
-      - {x: 0.2930978, y: 0.03309795}
-      - {x: 0.18630505, y: 0.15217406}
+    - - {x: -0.18102, y: 0.123340294}
+      - {x: -0.27690083, y: -0.13517496}
+      - {x: 0.27961046, y: -0.14216234}
+      - {x: 0.19767857, y: 0.12184504}
   m_UseDelaunayMesh: 0
