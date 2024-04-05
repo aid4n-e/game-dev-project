@@ -84,7 +84,7 @@ public class PlayerMovement : MonoBehaviour {
 
                 throwCharging = true;
                 chargeTime = Time.time;
-                rm.audioSrc.PlayOneShot(rm.sounds[5]);
+                //rm.audioSrc.PlayOneShot(rm.sounds[5]);
                 soundCue = 1;
             }
         }
