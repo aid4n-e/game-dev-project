@@ -61,7 +61,7 @@ public class PlayerMovement : MonoBehaviour {
             rm.hookThrow.ResetThrow();
         }
 
-        if(grounded && moveInput.x == 0) {
+        if(grounded && moveInput.x == 0 && playerRigidBody.velocity.magnitude > 0.5f) {
 
             playerRigidBody.AddForce(Vector2.right * friction * Mathf.Clamp(-playerRigidBody.velocity.x, -0.2f, 0.2f), ForceMode2D.Force);
         }
