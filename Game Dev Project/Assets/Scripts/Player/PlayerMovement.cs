@@ -45,7 +45,7 @@ public class PlayerMovement : MonoBehaviour {
 
     IEnumerator StartGame() {
 
-        for(int i = 0; i < 10; i++) {
+        /*for(int i = 0; i < 5; i++) {
 
             rm.grappleHook.ResetRope();
             rm.hookThrow.ResetThrow();
@@ -53,7 +53,7 @@ public class PlayerMovement : MonoBehaviour {
             rm.hookThrow.Throw(0.6f, new Vector2(0.3f, 1));
 
             yield return new WaitForSeconds(0.5f);
-        }
+        }*/
 
     }
 
