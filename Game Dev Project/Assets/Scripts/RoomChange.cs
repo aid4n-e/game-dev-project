@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Roomchange : MonoBehaviour
 {
+    public ReferenceManager rm;
+
     // Array for camera positions
     public Transform[] roomCameraPositions;
 
@@ -18,12 +20,17 @@ public class Roomchange : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("PlayerTrigger"))
         {
             // Increment the room index
             currentRoomIndex = (currentRoomIndex + 1) % roomCameraPositions.Length;
             // Set the camera position to the new room
             Camera.main.transform.position = roomCameraPositions[currentRoomIndex].position;
+
+            rm.playerState.respawnPos = this.transform.position;
+
         }
+
+
     }
 }

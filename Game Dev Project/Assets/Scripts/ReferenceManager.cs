@@ -19,6 +19,7 @@ public class ReferenceManager : MonoBehaviour
     public LayerMask terrainLayer;
 
     public AudioSource audioSrc;
+    public AudioSource hookAudioSrc;
     public AudioClip[] sounds;
 
     private void Start() {

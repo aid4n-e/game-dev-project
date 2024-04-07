@@ -34,14 +34,27 @@ public class PlayerMovement : MonoBehaviour {
 
     [SerializeField] InputActionReference move, grapple, fire, jump;
 
-    int soundCue;
-
-
     void Start() {
 
         playerRigidBody = GetComponent<Rigidbody2D>();  //  the GetComponent<>(); method will hold the unity component we are trying to access, hence our playerRigidBody which is of the RigidBody2D class will be held as a parameter in GetComponent<>(); as GetComponent<RigidBody2D>();
         playerAnimator = GetComponent<Animator>();  //  these variables are global because we will be accessing them throughout the program
         playerCapsuleCollider = GetComponent<CapsuleCollider2D>();  //  Set up a reference to alter the players referenced capsule collider
+
+        StartCoroutine(StartGame());
+    }
+
+    IEnumerator StartGame() {
+
+        for(int i = 0; i < 10; i++) {
+
+            rm.grappleHook.ResetRope();
+            rm.hookThrow.ResetThrow();
+
+            rm.hookThrow.Throw(0.6f, new Vector2(0.3f, 1));
+
+            yield return new WaitForSeconds(0.5f);
+        }
+
     }
 
     private void Update() {
@@ -57,6 +70,7 @@ public class PlayerMovement : MonoBehaviour {
         else if (onJump && !grounded && rm.hookThrow.attached) {
 
             playerRigidBody.AddForce(playerRigidBody.velocity*0.5f, ForceMode2D.Impulse);
+            rm.hookAudioSrc.Stop();
             rm.grappleHook.ResetRope();
             rm.hookThrow.ResetThrow();
         }
@@ -68,9 +82,15 @@ public class PlayerMovement : MonoBehaviour {
 
         if(throwCharging) {
 
-            //if(chargeTime - Time.time < )
-        }
+            if(Time.time - chargeTime > 1.5f) {
 
+                throwCharging = false;
+                rm.grappleHook.ResetRope();
+                rm.hookThrow.ResetThrow();
+                rm.audioSrc.PlayOneShot(rm.sounds[4]);
+                rm.hookThrow.Throw(0.1f, throwDirection);
+            }
+        }
 
         if (onFire) {
 
@@ -79,13 +99,19 @@ public class PlayerMovement : MonoBehaviour {
                 pullCharging = true;
                 pullChargeTime = Time.time;
                 rm.grappleHook.pull = true;
+                rm.hookAudioSrc.Play();
+            }
+            else if(rm.hookThrow.thrown) {
+
+                throwCharging = false;
+                rm.grappleHook.ResetRope();
+                rm.hookThrow.ResetThrow();
             }
             else if (!throwCharging) {
 
                 throwCharging = true;
                 chargeTime = Time.time;
-                //rm.audioSrc.PlayOneShot(rm.sounds[5]);
-                soundCue = 1;
+                rm.hookAudioSrc.Play();
             }
         }
 
@@ -103,6 +129,7 @@ public class PlayerMovement : MonoBehaviour {
 
                 pullChargeTime = Mathf.Clamp(Time.time - pullChargeTime, 0.1f, 0.5f);
                 rm.grappleHook.Pull(pullChargeTime * pullSpeed);
+                rm.hookAudioSrc.Stop();
             }
 
             else if (pullCharging)

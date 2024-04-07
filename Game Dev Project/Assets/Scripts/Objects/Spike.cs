@@ -7,8 +7,8 @@ public class Spike : MonoBehaviour
 
     public ReferenceManager rm;
 
-    private void OnCollisionEnter2D(Collision2D collision) {
-        if (collision.gameObject.CompareTag("Player"))
+    private void OnTriggerEnter2D(Collider2D collision) {
+        if (collision.gameObject.CompareTag("PlayerTrigger"))
             rm.playerState.Kill();
     }
 

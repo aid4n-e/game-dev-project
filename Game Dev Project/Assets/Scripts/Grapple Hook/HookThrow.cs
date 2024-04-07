@@ -60,7 +60,7 @@ public class HookThrow : MonoBehaviour {
 
         rm.grappleHook.rope.SetActive(true);
 
-        rm.audioSrc.PlayOneShot(rm.sounds[2]);
+        rm.hookAudioSrc.Stop();
     }
 
 
