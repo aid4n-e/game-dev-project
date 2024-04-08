@@ -40,12 +40,12 @@ public class PlayerMovement : MonoBehaviour {
         playerAnimator = GetComponent<Animator>();  //  these variables are global because we will be accessing them throughout the program
         playerCapsuleCollider = GetComponent<CapsuleCollider2D>();  //  Set up a reference to alter the players referenced capsule collider
 
-        StartCoroutine(StartGame());
+        //StartCoroutine(StartGame());
     }
 
-    IEnumerator StartGame() {
+    /*IEnumerator StartGame() {
 
-        /*for(int i = 0; i < 5; i++) {
+        for(int i = 0; i < 5; i++) {
 
             rm.grappleHook.ResetRope();
             rm.hookThrow.ResetThrow();
@@ -53,9 +53,9 @@ public class PlayerMovement : MonoBehaviour {
             rm.hookThrow.Throw(0.6f, new Vector2(0.3f, 1));
 
             yield return new WaitForSeconds(0.5f);
-        }*/
+        }
 
-    }
+    }*/
 
     private void Update() {
 

@@ -15,11 +15,11 @@ public class PlayerState : MonoBehaviour
 
     public void Kill() {
 
-        rm.grappleHook.ResetRope();
-        rm.hookThrow.ResetThrow();
-
         playerRb.velocity = Vector2.zero;
         player.position = respawnPos;
+
+        rm.grappleHook.ResetRope();
+        rm.hookThrow.ResetThrow();
 
         rm.audioSrc.PlayOneShot(rm.sounds[0]);
     }
