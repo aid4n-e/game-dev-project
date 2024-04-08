@@ -40,10 +40,10 @@ public class PlayerMovement : MonoBehaviour {
         playerAnimator = GetComponent<Animator>();  //  these variables are global because we will be accessing them throughout the program
         playerCapsuleCollider = GetComponent<CapsuleCollider2D>();  //  Set up a reference to alter the players referenced capsule collider
 
-        StartCoroutine(StartGame());
+        //StartCoroutine(StartGame());
     }
 
-    IEnumerator StartGame() {
+    //IEnumerator StartGame() {
 
         /*for(int i = 0; i < 5; i++) {
 
@@ -55,7 +55,7 @@ public class PlayerMovement : MonoBehaviour {
             yield return new WaitForSeconds(0.5f);
         }*/
 
-    }
+    //}
 
     private void Update() {
 
