@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Collections.Generic;
-using UnityEditor.SearchService;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class MenuScript : MonoBehaviour
@@ -57,7 +54,7 @@ public class MenuScript : MonoBehaviour
         if (!(startActive) && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)))
         {
             Application.Quit();
-            UnityEditor.EditorApplication.isPlaying = false;// for exiting while in editor
+            //UnityEditor.EditorApplication.isPlaying = false;// for exiting while in editor
             
         }
 
